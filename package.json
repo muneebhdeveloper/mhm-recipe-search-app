@@ -1,0 +1,30 @@
+{
+  "name": "mhm-recipe-search-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muneebhdeveloper/mhm-recipe-search-app.git"
+  },
+  "author": "Muneeb Hussain",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/muneebhdeveloper/mhm-recipe-search-app/issues"
+  },
+  "homepage": "https://github.com/muneebhdeveloper/mhm-recipe-search-app#readme",
+  "devDependencies": {
+    "parcel": "^2.0.0-beta.1",
+    "sass": "^1.32.12"
+  },
+  "dependencies": {
+    "core-js": "^3.11.1",
+    "fractional": "^1.0.0",
+    "regenerator-runtime": "^0.13.7"
+  }
+}
