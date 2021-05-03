@@ -441,7 +441,11 @@ require("core-js/modules/web.immediate.js");
 
 var model = _interopRequireWildcard(require("./model.js"));
 
+var _searchFieldView = _interopRequireDefault(require("./views/searchFieldView.js"));
+
 var _recipeView = _interopRequireDefault(require("./views/recipeView.js"));
+
+var _searchView = _interopRequireDefault(require("./views/searchView.js"));
 
 var _icons = _interopRequireDefault(require("url:../img/icons.svg"));
 
@@ -467,16 +471,38 @@ const controlRecipes = async function () {
 
     _recipeView.default.render(model.state.recipe);
   } catch (error) {
-    _recipeView.default.renderError(error.message);
+    _recipeView.default.renderError();
+  }
+};
+
+const controlSearchResults = async function () {
+  try {
+    const query = _searchFieldView.default.getQuery();
+
+    console.log(query);
+    if (!query) return; // Render spinner until get the view done
+
+    _searchView.default.renderSpinner(); // Send ID to the model to load the recipe from API
+
+
+    await model.loadSearchResults(query); // Render the recipe to the view
+
+    _searchView.default.render(model.state.search.results);
+
+    console.log(model.state.search.results);
+  } catch (error) {
+    _searchView.default.renderError();
   }
 };
 
 const init = function () {
   _recipeView.default.addHandlerRender(controlRecipes);
+
+  _searchFieldView.default.addHandlerSearch(controlSearchResults);
 };
 
 init();
-},{"url:../img/icons.svg":"7a876a545212059e31980474cf8dc0ef","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./views/recipeView.js":"bcae1aced0301b01ccacb3e6f7dfede8"}],"7a876a545212059e31980474cf8dc0ef":[function(require,module,exports) {
+},{"url:../img/icons.svg":"7a876a545212059e31980474cf8dc0ef","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./views/recipeView.js":"bcae1aced0301b01ccacb3e6f7dfede8","./views/searchView.js":"c5d792f7cac03ef65de30cc0fbb2cae7","./views/searchFieldView.js":"945019f59c9dae06b1e44fc53433605b"}],"7a876a545212059e31980474cf8dc0ef":[function(require,module,exports) {
 module.exports = require('./bundle-url').getBundleURL() + require('./relative-path')("c53aa7d9e0dafa4b", "ed1a4899b69d78b8");
 },{"./bundle-url":"2146da1905b95151ed14d455c784e7b7","./relative-path":"1b9943ef25c7bbdf0dd1b9fa91880a6c"}],"2146da1905b95151ed14d455c784e7b7":[function(require,module,exports) {
 "use strict";
@@ -1473,7 +1499,7 @@ module.exports = classof(global.process) == 'process';
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.loadRecipe = exports.state = void 0;
+exports.loadSearchResults = exports.loadRecipe = exports.state = void 0;
 
 var _regeneratorRuntime = require("regenerator-runtime");
 
@@ -1482,7 +1508,13 @@ var _helper = require("./helper.js");
 var _config = require("./config.js");
 
 const state = {
-  recipe: {}
+  recipe: {},
+  search: {
+    query: '',
+    results: [],
+    pagesCount: 1,
+    resultsPerPage: _config.RESULT_PER_PAGE
+  }
 };
 exports.state = state;
 
@@ -1503,11 +1535,38 @@ const loadRecipe = async function (recipeID) {
       source: recipe.source_url
     };
   } catch (error) {
-    throw new Error('Requested recipe not found');
+    throw error;
   }
 };
 
 exports.loadRecipe = loadRecipe;
+
+const loadSearchResults = async function (query) {
+  try {
+    state.search.query = query;
+    state.search.results = [];
+    const data = await (0, _helper.getJSON)(`${_config.API_URL}?search=${query}`);
+
+    if (data.data.recipes.length < 1) {
+      throw new Error();
+      return;
+    }
+
+    state.search.results = data.data.recipes.map(recipe => {
+      return {
+        id: recipe.id,
+        title: recipe.title,
+        image: recipe.image_url,
+        publisher: recipe.publisher
+      };
+    });
+    console.log(state.search);
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.loadSearchResults = loadSearchResults;
 },{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./helper.js":"ca5e72bede557533b2de19db21a2a688","./config.js":"09212d541c5c40ff2bd93475a904f8de"}],"e155e0d3930b156f86c48e8d05522b16":[function(require,module,exports) {
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
@@ -2296,11 +2355,13 @@ exports.getJSON = getJSON;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.TIMEOUT_SEC = exports.API_URL = void 0;
+exports.RESULT_PER_PAGE = exports.TIMEOUT_SEC = exports.API_URL = void 0;
 const API_URL = 'https://forkify-api.herokuapp.com/api/v2/recipes/';
 exports.API_URL = API_URL;
 const TIMEOUT_SEC = 10;
 exports.TIMEOUT_SEC = TIMEOUT_SEC;
+const RESULT_PER_PAGE = 10;
+exports.RESULT_PER_PAGE = RESULT_PER_PAGE;
 },{}],"bcae1aced0301b01ccacb3e6f7dfede8":[function(require,module,exports) {
 "use strict";
 
@@ -2309,30 +2370,27 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+var _view = _interopRequireDefault(require("./view.js"));
+
 var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-var Fraction = require('fractional').Fraction;
+let Fraction = require('fractional').Fraction;
 
-class RecipeView {
-  constructor() {
+class RecipeView extends _view.default {
+  constructor(...args) {
+    super(...args);
+
     _defineProperty(this, "_parentElement", document.querySelector('.recipe'));
 
     _defineProperty(this, "_data", void 0);
-  }
 
-  render(data) {
-    this._data = data;
-    console.log(this._data);
+    _defineProperty(this, "_errorMessage", 'We could not find that recipe, Please another one');
 
-    const markup = this._generateMarkup();
-
-    this._clear();
-
-    this._parentElement.insertAdjacentHTML('afterbegin', markup);
+    _defineProperty(this, "_successMessage", '');
   }
 
   _generateMarkup() {
@@ -2426,41 +2484,6 @@ class RecipeView {
   `;
   }
 
-  _clear() {
-    this._parentElement.innerHTML = '';
-  }
-
-  renderSpinner() {
-    const markup = `
-    <div class="spinner">
-        <svg>
-          <use href="${_icons.default}#icon-loader"></use>
-        </svg>
-      </div>
-    `;
-
-    this._clear();
-
-    this._parentElement.insertAdjacentHTML('afterbegin', markup);
-  }
-
-  renderError(errorMessage) {
-    const markup = `
-      <div class="error">
-            <div>
-              <svg>
-                <use href="${_icons.default}#icon-alert-triangle"></use>
-              </svg>
-            </div>
-            <p>${errorMessage}</p>
-          </div>
-      `;
-
-    this._clear();
-
-    this._parentElement.insertAdjacentHTML('afterbegin', markup);
-  }
-
   addHandlerRender(handler) {
     ['hashchange', 'load'].forEach(event => {
       window.addEventListener(event, handler);
@@ -2472,7 +2495,7 @@ class RecipeView {
 var _default = new RecipeView();
 
 exports.default = _default;
-},{"url:../../img/icons.svg":"7a876a545212059e31980474cf8dc0ef","fractional":"ddbc156a7c16e105c8df04e9fdec967d"}],"ddbc156a7c16e105c8df04e9fdec967d":[function(require,module,exports) {
+},{"url:../../img/icons.svg":"7a876a545212059e31980474cf8dc0ef","fractional":"ddbc156a7c16e105c8df04e9fdec967d","./view.js":"6a3957d8744bf1d70b2b44f3726dda59"}],"ddbc156a7c16e105c8df04e9fdec967d":[function(require,module,exports) {
 /*
 fraction.js
 A Javascript fraction library.
@@ -2841,6 +2864,205 @@ Fraction.primeFactors = function(n)
 
 module.exports.Fraction = Fraction
 
+},{}],"6a3957d8744bf1d70b2b44f3726dda59":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+class View {
+  constructor() {
+    _defineProperty(this, "_parentElement", '');
+
+    _defineProperty(this, "_data", void 0);
+
+    _defineProperty(this, "_errorMessage", '');
+
+    _defineProperty(this, "_successMessage", '');
+  }
+
+  render(data) {
+    this._data = data;
+
+    const markup = this._generateMarkup();
+
+    this._clear();
+
+    this._parentElement.insertAdjacentHTML('afterbegin', markup);
+  }
+
+  _clear() {
+    this._parentElement.innerHTML = '';
+  }
+
+  renderSpinner() {
+    const markup = `
+      <div class="spinner">
+          <svg>
+            <use href="${_icons.default}#icon-loader"></use>
+          </svg>
+        </div>
+      `;
+
+    this._clear();
+
+    this._parentElement.insertAdjacentHTML('afterbegin', markup);
+  }
+
+  renderSuccess(successMessage = this._successMessage) {
+    const markup = `
+      <div class="message">
+            <div>
+              <svg>
+                <use href="${_icons.default}#icon-smile"></use>
+              </svg>
+            </div>
+            <p>${successMessage}</p>
+          </div>
+      `;
+
+    this._clear();
+
+    this._parentElement.insertAdjacentHTML('afterbegin', markup);
+  }
+
+  renderError(errorMessage = this._errorMessage) {
+    const markup = `
+        <div class="error">
+              <div>
+                <svg>
+                  <use href="${_icons.default}#icon-alert-triangle"></use>
+                </svg>
+              </div>
+              <p>${errorMessage}</p>
+            </div>
+        `;
+
+    this._clear();
+
+    this._parentElement.insertAdjacentHTML('afterbegin', markup);
+  }
+
+}
+
+var _default = View;
+exports.default = _default;
+},{"url:../../img/icons.svg":"7a876a545212059e31980474cf8dc0ef"}],"c5d792f7cac03ef65de30cc0fbb2cae7":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _view = _interopRequireDefault(require("./view.js"));
+
+var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+let Fraction = require('fractional').Fraction;
+
+class SearchView extends _view.default {
+  constructor(...args) {
+    super(...args);
+
+    _defineProperty(this, "_parentElement", document.querySelector('.search-results'));
+
+    _defineProperty(this, "_data", void 0);
+
+    _defineProperty(this, "_errorMessage", 'Recipe not found, search for another one');
+
+    _defineProperty(this, "_successMessage", '');
+
+    _defineProperty(this, "_searchForm", document.querySelector('.search'));
+  }
+
+  _generateMarkup() {
+    return `
+    <ul class="results">
+    ${this._data.map(recipe => {
+      return `
+        <li class="preview">
+        <a
+            class="preview__link ${window.location.hash.slice(1) === recipe.id ? 'preview__link--active' : ''}"
+            href="#${recipe.id}"
+        >
+            <figure class="preview__fig">
+            <img src="${recipe.image}" alt="Test" />
+            </figure>
+            <div class="preview__data">
+            <h4 class="preview__title">${recipe.title}</h4>
+            <p class="preview__publisher">${recipe.publisher}</p>
+            <div class="preview__user-generated">
+                <svg>
+                <use href="${_icons.default}#icon-user"></use>
+                </svg>
+            </div>
+            </div>
+        </a>
+        </li>
+        `;
+    }).join('')}
+    </ul>
+  `;
+  }
+
+  addHandlerSearch(handler) {
+    this._searchForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      this.querySelector('.search__field').value = '';
+      handler();
+    });
+  }
+
+}
+
+var _default = new SearchView();
+
+exports.default = _default;
+},{"./view.js":"6a3957d8744bf1d70b2b44f3726dda59","url:../../img/icons.svg":"7a876a545212059e31980474cf8dc0ef","fractional":"ddbc156a7c16e105c8df04e9fdec967d"}],"945019f59c9dae06b1e44fc53433605b":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+class SearchFieldView {
+  constructor() {
+    _defineProperty(this, "_parentElement", document.querySelector('.search'));
+  }
+
+  getQuery() {
+    return this._parentElement.querySelector('.search__field').value + '';
+  }
+
+  addHandlerSearch(handler) {
+    this._parentElement.addEventListener('submit', function (event) {
+      event.preventDefault();
+      handler();
+      this.querySelector('.search__field').value = '';
+    });
+  }
+
+}
+
+var _default = new SearchFieldView();
+
+exports.default = _default;
 },{}]},{},["210bed7569e081f5cbd8588c6e0773d1","2c3c021d64cb37f177c80dd2d3733db1","175e469a7ea7db1c8c0744d04372621f"], null)
 
 //# sourceMappingURL=controller.bd504057.js.map

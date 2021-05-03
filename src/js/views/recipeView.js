@@ -1,16 +1,12 @@
+import View from './view.js';
 import icons from 'url:../../img/icons.svg';
-var Fraction = require('fractional').Fraction;
-class RecipeView {
+let Fraction = require('fractional').Fraction;
+
+class RecipeView extends View {
   _parentElement = document.querySelector('.recipe');
   _data;
-
-  render(data) {
-    this._data = data;
-    console.log(this._data);
-    const markup = this._generateMarkup();
-    this._clear();
-    this._parentElement.insertAdjacentHTML('afterbegin', markup);
-  }
+  _errorMessage = 'We could not find that recipe, Please another one';
+  _successMessage = '';
 
   _generateMarkup() {
     return `
@@ -111,37 +107,6 @@ class RecipeView {
       </a>
     </div>
   `;
-  }
-
-  _clear() {
-    this._parentElement.innerHTML = '';
-  }
-
-  renderSpinner() {
-    const markup = `
-    <div class="spinner">
-        <svg>
-          <use href="${icons}#icon-loader"></use>
-        </svg>
-      </div>
-    `;
-    this._clear();
-    this._parentElement.insertAdjacentHTML('afterbegin', markup);
-  }
-
-  renderError(errorMessage) {
-    const markup = `
-      <div class="error">
-            <div>
-              <svg>
-                <use href="${icons}#icon-alert-triangle"></use>
-              </svg>
-            </div>
-            <p>${errorMessage}</p>
-          </div>
-      `;
-    this._clear();
-    this._parentElement.insertAdjacentHTML('afterbegin', markup);
   }
 
   addHandlerRender(handler) {
