@@ -487,7 +487,7 @@ const controlSearchResults = async function () {
 
     await model.loadSearchResults(query); // Render the recipe to the view
 
-    _searchView.default.render(model.state.search.results);
+    _searchView.default.render(model.getResultsByPage(22));
 
     console.log(model.state.search.results);
   } catch (error) {
@@ -1499,7 +1499,7 @@ module.exports = classof(global.process) == 'process';
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.loadSearchResults = exports.loadRecipe = exports.state = void 0;
+exports.getResultsByPage = exports.loadSearchResults = exports.loadRecipe = exports.state = void 0;
 
 var _regeneratorRuntime = require("regenerator-runtime");
 
@@ -1512,6 +1512,7 @@ const state = {
   search: {
     query: '',
     results: [],
+    currentPage: 1,
     pagesCount: 1,
     resultsPerPage: _config.RESULT_PER_PAGE
   }
@@ -1560,6 +1561,7 @@ const loadSearchResults = async function (query) {
         publisher: recipe.publisher
       };
     });
+    state.search.pagesCount = Math.ceil(state.search.results.length / state.search.resultsPerPage);
     console.log(state.search);
   } catch (error) {
     throw error;
@@ -1567,6 +1569,15 @@ const loadSearchResults = async function (query) {
 };
 
 exports.loadSearchResults = loadSearchResults;
+
+const getResultsByPage = function (pageNumber = state.search.results.currentPage) {
+  const start = (pageNumber - 1) * state.search.resultsPerPage;
+  const end = start + 10;
+  console.log(state.search.results.slice(start, end));
+  return state.search.results.slice(start, end);
+};
+
+exports.getResultsByPage = getResultsByPage;
 },{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./helper.js":"ca5e72bede557533b2de19db21a2a688","./config.js":"09212d541c5c40ff2bd93475a904f8de"}],"e155e0d3930b156f86c48e8d05522b16":[function(require,module,exports) {
 /**
  * Copyright (c) 2014-present, Facebook, Inc.

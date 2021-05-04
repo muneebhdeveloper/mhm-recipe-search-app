@@ -7,6 +7,7 @@ export const state = {
   search: {
     query: '',
     results: [],
+    currentPage: 1,
     pagesCount: 1,
     resultsPerPage: RESULT_PER_PAGE,
   },
@@ -54,8 +55,21 @@ export const loadSearchResults = async function (query) {
       };
     });
 
+    state.search.pagesCount = Math.ceil(
+      state.search.results.length / state.search.resultsPerPage
+    );
+
     console.log(state.search);
   } catch (error) {
     throw error;
   }
+};
+
+export const getResultsByPage = function (
+  pageNumber = state.search.results.currentPage
+) {
+  const start = (pageNumber - 1) * state.search.resultsPerPage;
+  const end = start + 10;
+  console.log(state.search.results.slice(start, end));
+  return state.search.results.slice(start, end);
 };

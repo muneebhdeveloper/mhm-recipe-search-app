@@ -44,7 +44,8 @@ const controlSearchResults = async function () {
     await model.loadSearchResults(query);
 
     // Render the recipe to the view
-    searchView.render(model.state.search.results);
+    searchView.render(model.getResultsByPage(22));
+
     console.log(model.state.search.results);
   } catch (error) {
     searchView.renderError();
