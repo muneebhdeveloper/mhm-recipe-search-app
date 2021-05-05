@@ -3,7 +3,7 @@ import icons from 'url:../../img/icons.svg';
 let Fraction = require('fractional').Fraction;
 
 class SearchView extends View {
-  _parentElement = document.querySelector('.search-results');
+  _parentElement = document.querySelector('.results');
   _data;
   _errorMessage = 'Recipe not found, search for another one';
   _successMessage = '';
@@ -11,7 +11,6 @@ class SearchView extends View {
 
   _generateMarkup() {
     return `
-    <ul class="results">
     ${this._data
       .map(recipe => {
         return `
@@ -41,7 +40,6 @@ class SearchView extends View {
         `;
       })
       .join('')}
-    </ul>
   `;
   }
 

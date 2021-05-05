@@ -66,10 +66,11 @@ export const loadSearchResults = async function (query) {
 };
 
 export const getResultsByPage = function (
-  pageNumber = state.search.results.currentPage
+  pageNumber = state.search.currentPage
 ) {
+  state.search.currentPage = pageNumber;
   const start = (pageNumber - 1) * state.search.resultsPerPage;
-  const end = start + 10;
+  const end = start + state.search.resultsPerPage;
   console.log(state.search.results.slice(start, end));
   return state.search.results.slice(start, end);
 };

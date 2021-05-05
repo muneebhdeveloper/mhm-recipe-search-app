@@ -2,6 +2,7 @@ import * as model from './model.js';
 import searchFieldView from './views/searchFieldView.js';
 import recipeView from './views/recipeView.js';
 import searchView from './views/searchView.js';
+import paginationView from './views/paginationView.js';
 import icons from 'url:../img/icons.svg';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
@@ -44,9 +45,12 @@ const controlSearchResults = async function () {
     await model.loadSearchResults(query);
 
     // Render the recipe to the view
-    searchView.render(model.getResultsByPage(22));
+    searchView.render(model.getResultsByPage(2));
 
-    console.log(model.state.search.results);
+    // Render Pagination
+    paginationView.render(model.state.search);
+
+    console.log(model.state.search);
   } catch (error) {
     searchView.renderError();
   }

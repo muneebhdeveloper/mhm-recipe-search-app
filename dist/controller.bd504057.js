@@ -447,6 +447,8 @@ var _recipeView = _interopRequireDefault(require("./views/recipeView.js"));
 
 var _searchView = _interopRequireDefault(require("./views/searchView.js"));
 
+var _paginationView = _interopRequireDefault(require("./views/paginationView.js"));
+
 var _icons = _interopRequireDefault(require("url:../img/icons.svg"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -487,9 +489,12 @@ const controlSearchResults = async function () {
 
     await model.loadSearchResults(query); // Render the recipe to the view
 
-    _searchView.default.render(model.getResultsByPage(22));
+    _searchView.default.render(model.getResultsByPage(2)); // Render Pagination
 
-    console.log(model.state.search.results);
+
+    _paginationView.default.render(model.state.search);
+
+    console.log(model.state.search);
   } catch (error) {
     _searchView.default.renderError();
   }
@@ -502,7 +507,7 @@ const init = function () {
 };
 
 init();
-},{"url:../img/icons.svg":"7a876a545212059e31980474cf8dc0ef","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./views/recipeView.js":"bcae1aced0301b01ccacb3e6f7dfede8","./views/searchView.js":"c5d792f7cac03ef65de30cc0fbb2cae7","./views/searchFieldView.js":"945019f59c9dae06b1e44fc53433605b"}],"7a876a545212059e31980474cf8dc0ef":[function(require,module,exports) {
+},{"url:../img/icons.svg":"7a876a545212059e31980474cf8dc0ef","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./views/recipeView.js":"bcae1aced0301b01ccacb3e6f7dfede8","./views/searchView.js":"c5d792f7cac03ef65de30cc0fbb2cae7","./views/searchFieldView.js":"945019f59c9dae06b1e44fc53433605b","./views/paginationView.js":"d2063f3e7de2e4cdacfcb5eb6479db05"}],"7a876a545212059e31980474cf8dc0ef":[function(require,module,exports) {
 module.exports = require('./bundle-url').getBundleURL() + require('./relative-path')("c53aa7d9e0dafa4b", "ed1a4899b69d78b8");
 },{"./bundle-url":"2146da1905b95151ed14d455c784e7b7","./relative-path":"1b9943ef25c7bbdf0dd1b9fa91880a6c"}],"2146da1905b95151ed14d455c784e7b7":[function(require,module,exports) {
 "use strict";
@@ -1570,9 +1575,10 @@ const loadSearchResults = async function (query) {
 
 exports.loadSearchResults = loadSearchResults;
 
-const getResultsByPage = function (pageNumber = state.search.results.currentPage) {
+const getResultsByPage = function (pageNumber = state.search.currentPage) {
+  state.search.currentPage = pageNumber;
   const start = (pageNumber - 1) * state.search.resultsPerPage;
-  const end = start + 10;
+  const end = start + state.search.resultsPerPage;
   console.log(state.search.results.slice(start, end));
   return state.search.results.slice(start, end);
 };
@@ -2988,7 +2994,7 @@ class SearchView extends _view.default {
   constructor(...args) {
     super(...args);
 
-    _defineProperty(this, "_parentElement", document.querySelector('.search-results'));
+    _defineProperty(this, "_parentElement", document.querySelector('.results'));
 
     _defineProperty(this, "_data", void 0);
 
@@ -3001,7 +3007,6 @@ class SearchView extends _view.default {
 
   _generateMarkup() {
     return `
-    <ul class="results">
     ${this._data.map(recipe => {
       return `
         <li class="preview">
@@ -3025,7 +3030,6 @@ class SearchView extends _view.default {
         </li>
         `;
     }).join('')}
-    </ul>
   `;
   }
 
@@ -3074,6 +3078,91 @@ class SearchFieldView {
 var _default = new SearchFieldView();
 
 exports.default = _default;
-},{}]},{},["210bed7569e081f5cbd8588c6e0773d1","2c3c021d64cb37f177c80dd2d3733db1","175e469a7ea7db1c8c0744d04372621f"], null)
+},{}],"d2063f3e7de2e4cdacfcb5eb6479db05":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _view = _interopRequireDefault(require("./view.js"));
+
+var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+class PaginationView extends _view.default {
+  constructor(...args) {
+    super(...args);
+
+    _defineProperty(this, "_parentElement", document.querySelector('.pagination'));
+
+    _defineProperty(this, "_data", void 0);
+
+    _defineProperty(this, "_errorMessage", '');
+
+    _defineProperty(this, "_successMessage", '');
+  }
+
+  _generateMarkup() {
+    // Other pages
+    if (this._data.currentPage > 1 && this._data.currentPage < this._data.pagesCount) {
+      return `
+      <button class="btn--inline pagination__btn--prev" data-goto="${this._data.currentPage - 1}">
+      <svg class="search__icon">
+        <use href="${_icons.default}#icon-arrow-left"></use>
+      </svg>
+      <span>Page ${this._data.currentPage - 1}</span>
+    </button>
+    <button class="btn--inline pagination__btn--next" data-goto="${this._data.currentPage + 1}">
+      <span>Page ${this._data.currentPage + 1}</span>
+      <svg class="search__icon">
+        <use href="${_icons.default}#icon-arrow-right"></use>
+      </svg>
+    </button>
+          `;
+    } // Page 1, and more pages
+
+
+    if (this._data.pagesCount > 1 && this._data.currentPage !== this._data.pagesCount) {
+      return `
+      <button class="btn--inline pagination__btn--next" data-goto="${this._data.currentPage + 1}">
+      <span>Page ${this._data.currentPage + 1}</span>
+      <svg class="search__icon">
+        <use href="${_icons.default}#icon-arrow-right"></use>
+      </svg>
+    </button>
+          `;
+    } // Last page
+
+
+    if (this._data.pagesCount > 1 && this._data.currentPage === this._data.pagesCount) {
+      return `
+      <button class="btn--inline pagination__btn--prev" data-goto="${this._data.currentPage - 1}">
+      <svg class="search__icon">
+        <use href="${_icons.default}#icon-arrow-left"></use>
+      </svg>
+      <span>Page ${this._data.currentPage - 1}</span>
+    </button>
+          `;
+    }
+
+    return '';
+  } //   addHandlerRender(handler) {
+  //     ['hashchange', 'load'].forEach(event => {
+  //       window.addEventListener(event, handler);
+  //     });
+  //   }
+
+
+}
+
+var _default = new PaginationView();
+
+exports.default = _default;
+},{"./view.js":"6a3957d8744bf1d70b2b44f3726dda59","url:../../img/icons.svg":"7a876a545212059e31980474cf8dc0ef"}]},{},["210bed7569e081f5cbd8588c6e0773d1","2c3c021d64cb37f177c80dd2d3733db1","175e469a7ea7db1c8c0744d04372621f"], null)
 
 //# sourceMappingURL=controller.bd504057.js.map
