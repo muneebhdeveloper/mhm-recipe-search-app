@@ -58,8 +58,6 @@ export const loadSearchResults = async function (query) {
     state.search.pagesCount = Math.ceil(
       state.search.results.length / state.search.resultsPerPage
     );
-
-    console.log(state.search);
   } catch (error) {
     throw error;
   }
@@ -71,6 +69,27 @@ export const getResultsByPage = function (
   state.search.currentPage = pageNumber;
   const start = (pageNumber - 1) * state.search.resultsPerPage;
   const end = start + state.search.resultsPerPage;
-  console.log(state.search.results.slice(start, end));
   return state.search.results.slice(start, end);
+};
+
+export const getUpdatedServings = function (operation) {
+  const prevServings = state.recipe.servings;
+  let updateQuantity;
+  const updatedQuantity = state.recipe.ingredients.map(ing => {
+    const refactorPrevQty = ing.quantity / prevServings;
+    if (operation === 'plus') {
+      updateQuantity = (prevServings + 1) * refactorPrevQty;
+    }
+    if (operation === 'minus') {
+      updateQuantity = (prevServings - 1) * refactorPrevQty;
+    }
+
+    return {
+      quantity: updateQuantity,
+      unit: ing.unit,
+      description: ing.description,
+    };
+  });
+  state.recipe.ingredients = updatedQuantity;
+  operation === 'plus' ? state.recipe.servings++ : state.recipe.servings--;
 };

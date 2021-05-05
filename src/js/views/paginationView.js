@@ -7,6 +7,15 @@ class PaginationView extends View {
   _errorMessage = '';
   _successMessage = '';
 
+  addHandlerClick(handler) {
+    this._parentElement.addEventListener('click', function (event) {
+      const targetBtn = event.target.closest('.btn--inline');
+      if (!targetBtn) return;
+      const targetPage = +targetBtn.dataset.goto;
+      handler(targetPage);
+    });
+  }
+
   _generateMarkup() {
     // Other pages
     if (

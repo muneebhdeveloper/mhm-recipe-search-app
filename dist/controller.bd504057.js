@@ -489,21 +489,41 @@ const controlSearchResults = async function () {
 
     await model.loadSearchResults(query); // Render the recipe to the view
 
-    _searchView.default.render(model.getResultsByPage(2)); // Render Pagination
+    _searchView.default.render(model.getResultsByPage()); // Render Pagination
 
 
     _paginationView.default.render(model.state.search);
-
-    console.log(model.state.search);
   } catch (error) {
     _searchView.default.renderError();
   }
 };
 
+const controlPagination = function (pageNumber) {
+  // Render spinner until get the view done
+  _searchView.default.renderSpinner(); // Render the recipe to the view
+
+
+  _searchView.default.render(model.getResultsByPage(pageNumber)); // Render Pagination
+
+
+  _paginationView.default.render(model.state.search);
+};
+
+const controlServings = function (operation) {
+  // Update the servings
+  model.getUpdatedServings(operation); // Render the recipe to the view
+
+  _recipeView.default.render(model.state.recipe);
+};
+
 const init = function () {
   _recipeView.default.addHandlerRender(controlRecipes);
 
+  _recipeView.default.addHandlerServings(controlServings);
+
   _searchFieldView.default.addHandlerSearch(controlSearchResults);
+
+  _paginationView.default.addHandlerClick(controlPagination);
 };
 
 init();
@@ -1504,7 +1524,7 @@ module.exports = classof(global.process) == 'process';
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getResultsByPage = exports.loadSearchResults = exports.loadRecipe = exports.state = void 0;
+exports.getUpdatedServings = exports.getResultsByPage = exports.loadSearchResults = exports.loadRecipe = exports.state = void 0;
 
 var _regeneratorRuntime = require("regenerator-runtime");
 
@@ -1567,7 +1587,6 @@ const loadSearchResults = async function (query) {
       };
     });
     state.search.pagesCount = Math.ceil(state.search.results.length / state.search.resultsPerPage);
-    console.log(state.search);
   } catch (error) {
     throw error;
   }
@@ -1579,11 +1598,36 @@ const getResultsByPage = function (pageNumber = state.search.currentPage) {
   state.search.currentPage = pageNumber;
   const start = (pageNumber - 1) * state.search.resultsPerPage;
   const end = start + state.search.resultsPerPage;
-  console.log(state.search.results.slice(start, end));
   return state.search.results.slice(start, end);
 };
 
 exports.getResultsByPage = getResultsByPage;
+
+const getUpdatedServings = function (operation) {
+  const prevServings = state.recipe.servings;
+  let updateQuantity;
+  const updatedQuantity = state.recipe.ingredients.map(ing => {
+    const refactorPrevQty = ing.quantity / prevServings;
+
+    if (operation === 'plus') {
+      updateQuantity = (prevServings + 1) * refactorPrevQty;
+    }
+
+    if (operation === 'minus') {
+      updateQuantity = (prevServings - 1) * refactorPrevQty;
+    }
+
+    return {
+      quantity: updateQuantity,
+      unit: ing.unit,
+      description: ing.description
+    };
+  });
+  state.recipe.ingredients = updatedQuantity;
+  operation === 'plus' ? state.recipe.servings++ : state.recipe.servings--;
+};
+
+exports.getUpdatedServings = getUpdatedServings;
 },{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./helper.js":"ca5e72bede557533b2de19db21a2a688","./config.js":"09212d541c5c40ff2bd93475a904f8de"}],"e155e0d3930b156f86c48e8d05522b16":[function(require,module,exports) {
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
@@ -2377,7 +2421,7 @@ const API_URL = 'https://forkify-api.herokuapp.com/api/v2/recipes/';
 exports.API_URL = API_URL;
 const TIMEOUT_SEC = 10;
 exports.TIMEOUT_SEC = TIMEOUT_SEC;
-const RESULT_PER_PAGE = 10;
+const RESULT_PER_PAGE = 5;
 exports.RESULT_PER_PAGE = RESULT_PER_PAGE;
 },{}],"bcae1aced0301b01ccacb3e6f7dfede8":[function(require,module,exports) {
 "use strict";
@@ -2435,7 +2479,7 @@ class RecipeView extends _view.default {
         <span class="recipe__info-text">servings</span>
 
         <div class="recipe__info-buttons">
-          <button class="btn--tiny btn--increase-servings">
+          <button class="btn--tiny btn--decrease-servings">
             <svg>
               <use href="${_icons.default}#icon-minus-circle"></use>
             </svg>
@@ -2504,6 +2548,24 @@ class RecipeView extends _view.default {
   addHandlerRender(handler) {
     ['hashchange', 'load'].forEach(event => {
       window.addEventListener(event, handler);
+    });
+  }
+
+  addHandlerServings(handler) {
+    this._parentElement.addEventListener('click', function (event) {
+      const btnIncrease = event.target.closest('.btn--increase-servings');
+      const btnDecrease = event.target.closest('.btn--decrease-servings');
+      if (!btnIncrease && !btnDecrease) return;
+
+      if (btnIncrease && !btnDecrease) {
+        handler('plus');
+        console.log('You clicked Plus');
+      }
+
+      if (btnDecrease && !btnIncrease) {
+        handler('minus');
+        console.log('You clicked Minus');
+      }
     });
   }
 
@@ -3105,6 +3167,15 @@ class PaginationView extends _view.default {
     _defineProperty(this, "_errorMessage", '');
 
     _defineProperty(this, "_successMessage", '');
+  }
+
+  addHandlerClick(handler) {
+    this._parentElement.addEventListener('click', function (event) {
+      const targetBtn = event.target.closest('.btn--inline');
+      if (!targetBtn) return;
+      const targetPage = +targetBtn.dataset.goto;
+      handler(targetPage);
+    });
   }
 
   _generateMarkup() {
